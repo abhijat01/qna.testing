@@ -1,6 +1,5 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options as ChromeOptions
 import time
 import os
 import json
@@ -10,6 +9,8 @@ import uuid
 
 
 class SessionMgmt:
+    _output_dir = "output"
+
     def __init__(self):
         self.filename = "driver_session.json"
 
@@ -17,9 +18,9 @@ class SessionMgmt:
         driver = webdriver.Chrome()
         executor_url = driver.command_executor._url
         session_id = driver.session_id
-        jobj = {'url': executor_url, 'sid': session_id}
+        session_info = {'url': executor_url, 'sid': session_id}
         with open(self.filename, 'w') as f:
-            json.dump(jobj, f)
+            json.dump(session_info, f)
         return driver
 
     def get_remote_session(self):
@@ -34,20 +35,32 @@ class SessionMgmt:
         driver.session_id = session_id
         return driver
 
+    @classmethod
+    def set_output_dir(cls, output_dir):
+        cls._output_dir = output_dir
+
+    @classmethod
+    def get_output_dir(cls):
+        if not os.path.isdir(cls._output_dir):
+            os.makedirs(cls._output_dir)
+
+        return cls._output_dir
+
 
 def next_uuid():
     return str(uuid.uuid4())
 
 
-def get_directory():
-    directory_path = os.path.join('kb.html')
+def get_output_dir():
+    base_dir = SessionMgmt.get_output_dir()
+    directory_path = os.path.join(base_dir, 'kb.html')
     if not os.path.isdir(directory_path):
         os.makedirs(directory_path)
     return directory_path
 
 
 def get_media_dir():
-    basedir = get_directory()
+    basedir = get_output_dir()
     media_dir = os.path.join(basedir, 'media')
     if not os.path.isdir(media_dir):
         os.makedirs(media_dir)
@@ -62,7 +75,7 @@ def get_media_file_path(filename):
 
 
 def get_file_path(filename):
-    dir_path = get_directory()
+    dir_path = get_output_dir()
     return os.path.join(dir_path, "{}.html".format(filename))
 
 
@@ -133,8 +146,8 @@ def get_filename_from_response_header(response):
     key = 'Content-Disposition'
     if not (key in response.headers):
         return None
-    c_disp = response.headers[key]
-    parts = c_disp.split(';')
+    content_disposition_header = response.headers[key]
+    parts = content_disposition_header.split(';')
     filename_key = 'filename='
     for part in parts:
         part = part.strip()
@@ -266,9 +279,9 @@ class KBArticleLine:
         header = self.content_soup.find('header')
         if header:
             header.decompose()
-        kb_infs = self.content_soup.find_all("div", {"class": "kb-number-info"})
-        if kb_infs:
-            for row in kb_infs:
+        kb_number_info = self.content_soup.find_all("div", {"class": "kb-number-info"})
+        if kb_number_info:
+            for row in kb_number_info:
                 row.decompose()
 
     def save_article(self):

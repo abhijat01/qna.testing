@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 /jupyter/kb.html/
 *.zip
+/output/kb.html/
